@@ -9,6 +9,11 @@
   short: Committee members
   description: "Uses the [person list](/docs/person_list) format"
 
+- attr: committee_list
+  type: object
+  short: Person list
+  generated: true
+
 - attr: year
   type: string
   short: YY_YY year identifier pertaining to this committee

@@ -3,7 +3,7 @@ layout: default
 body_class: layout-person header-nobr content-nobr
 ---
 {% assign person = page %}
-{% capture submit_link %}/collect/person/?name={{person.path_name}}{% endcapture %}
+{% capture submit_link %}/collect/person/?name={{ person.basename_without_ext }}{% endcapture %}
 
 <div class="person">
 
@@ -30,11 +30,11 @@ body_class: layout-person header-nobr content-nobr
 
     <div class="person-graduated">
       {% if person.graduated_actual %}
-      <div class="person-graduated-inner person-graduated-actual decade-background-{{ person.decade }}">
+      <div class="person-graduated-inner person-graduated-actual decade-background-{{ person.yyy }}">
         {{ person.graduated }}
       </div>
       {% elsif person.graduated %}
-      <div class="person-graduated-inner person-graduated-estimated decade-background-{{ person.decade }}" title="Estimated">
+      <div class="person-graduated-inner person-graduated-estimated decade-background-{{ person.yyy }}" title="Estimated">
         {{ person.graduated }}
       </div>
       <div class="person-graduated-estimated-text">Estimated</div>
@@ -95,8 +95,8 @@ body_class: layout-person header-nobr content-nobr
           <ul class="person-meta-list">
           {% for record in person.committees %}
             <li>
-              <a href="{{ record.item.year_page.url }}" class="person-meta-year">
-               {{ record.item.title }}
+              <a href="{{ record.source.year.url }}" class="person-meta-year">
+               {{ record.source.title }}
               </a>
               {% for role in record.roles %}
                 <span class="person-meta-role">{{ role | escape_once }}</span>
@@ -138,41 +138,7 @@ body_class: layout-person header-nobr content-nobr
 
 {% if person.shows %}
 <div class="person-shows-outer">
-  <section class="person-shows">
-    {% for record in person.shows %}
-    <div class="person-show">
-      <div class="person-show-poster">
-        <a href="{{ record.item.url }}" title="{{ record.item.title | escape_once }}">
-        {% if record.item.poster %}
-          {% include images/show-poster-thumb.html
-                     image=record.item.poster
-                     sizes="(max-width: 420px) 50vw, (max-width: 768px) 33vw, 170px"
-                     alt=record.item.title
-                     lazy=true %}
-        {% else %}
-          <!-- Missing Poster -->
-        {% endif %}
-        </a>
-      </div>
-
-      <h3 class="person-show-title">
-        {{ record.item.title | escape_once }}
-      </h3>
-
-      <div class="person-show-meta">
-        <span class="person-show-season season-{{ record.item.season | downcase | replace:" ","-" }}" title="{{ record.item.season }}"></span>
-        <span class="person-show-year">{{ record.item.year_page.title }}</span>
-      </div>
-
-      <ul class="person-show-roles">
-      {% for role in record.roles %}
-        <li>{{ role | escape_once }}</li>
-      {% endfor %}
-      </ul>
-
-    </div>
-    {% endfor %}
-  </section>
+  {% include person/shows.html person=person %}
 {% else %}
 
 <div class="wrapper">

@@ -1,44 +1,29 @@
-{% capture unknowns %}
-{% for person in people %}
-{% if person.role == "unknown" %}
-X
-{% elsif person.name == "unknown" %}
-X
-{% endif %}
-{% endfor %}
-{% endcapture %}
-
 {% if unknowns contains "X" %}
 {% include boxes/person_list_unknowns.html %}
 {% endif %}
 
 <ul class="person-list">
-{% for person in people %}
+{% for person in include.list.people %}
   <li class="person-single">
 
     {% if person.comment %}
     <div class="debug-comment" data-debug-toggle>{{ person.comment }}</div>
     {% endif %}
 
-    {% if person.person != false and person.name != "" and person.name != "unknown" %}
-      <a href="{% person_url {{ person.name }}%}">
-      {% assign linked_single = true %}
-    {% else %}
-      {% assign linked_single = false %}
-    {% endif %}
+    {% if person.person %}<a href="{{ person.person.url }}">{% endif %}
 
     <div class="person-headshot-container">
-      {% if person.person_record %}
+      {% if person.person %}
 
-        {% if person.person_record.headshot %}
+        {% if person.person.headshot %}
           {% include images/person-headshot.html
-                     image=person.person_record.headshot
+                     image=person.person.headshot
                      sizes="41px"
                      alt=person.name %}
         {% else %}
           <img src="/images/human-48.png"
                alt="No Headshot"
-               class="person-headshot {% if person.person_record.submitted %}person-headshot--submitted{% else %}person-headshot--placeholder{% endif %}" />
+               class="person-headshot {% if person.person.submitted %}person-headshot--submitted{% else %}person-headshot--placeholder{% endif %}" />
         {% endif %}
 
       {% else %}
@@ -65,7 +50,7 @@ X
       {% endif %}
     </div>
 
-    {% if linked_single %}</a>{% endif %}
+    {% if person.person %}</a>{% endif %}
 
   </li>
 {% endfor %}

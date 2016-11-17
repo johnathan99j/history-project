@@ -72,6 +72,7 @@ GEM
     rb-inotify (0.9.7)
       ffi (>= 0.5.0)
     rouge (1.11.1)
+    ruby-prof (0.16.2)
     safe_yaml (1.0.4)
     sass (3.4.22)
     sawyer (0.7.0)
@@ -97,6 +98,7 @@ DEPENDENCIES
   liquid-c
   octokit (~> 4.3)
   rake
+  ruby-prof
   sass
 
 BUNDLED WITH

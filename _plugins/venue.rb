@@ -1,68 +1,86 @@
-module Jekyll
-  class VenuePage < Document
-    def initialize(site, collection, venue)
-      @site = site
-      @venue = venue
-      @path = VenuePage.make_path(venue)
-      @extname = File.extname(path)
-      @output_ext = Jekyll::Renderer.new(site, self).output_ext
-      @collection = collection
-      @has_yaml_header = nil
-
-      defaults = @site.frontmatter_defaults.all(url, collection.label.to_sym)
-
-      @data = Utils.deep_merge_hashes(defaults, {"title" => get_title(), "placeholder" => true})
+module NTHP
+  class Venue < Jekyll::Document
+    def initialize(path, relations)
+      super path, relations
+      merge_data!({
+        "title" => relations[:title],
+        "placeholder" => relations[:placeholder],
+      })
     end
 
-    def get_title()
-      "#{ @venue }"
+    def slug
+      data["title"].downcase
     end
 
-    def self.make_path(venue_name)
-      # Downcase, remove specials, space->underscore
-      venue_path = venue_name.downcase.gsub(/[^a-z0-9 -]/, '').gsub(/ /, '-').gsub('---', '-')
-      "/#{ venue_path }"
+    def shows
+      @site.collections["shows"].by_venue[data["title"]]
     end
 
-    def content()
-      ""
+    # Convert image keys into smugimages
+    def smug_images
+      @smug_images ||= begin
+        if data.key? "images"
+          data["images"].map {|key|
+            SmugImage.new(key)
+          }
+        else
+          []
+        end
+      end
+    end
+
+    def to_liquid
+      @to_liquid ||= VenueDrop.new(self)
     end
   end
 
-  class VenueGenerator < Generator
-    priority :low
+  class VenueDrop < Jekyll::Drops::DocumentDrop
+    extend Forwardable
+    def_delegators :@obj, :slug, :shows, :smug_images
+  end
+
+  class Venues < Jekyll::Collection
+
+    # Monkey-patched from
+    # https://github.com/jekyll/jekyll/blob/v3.3.0/lib/jekyll/collection.rb#L200
+    private
+    def read_document(full_path)
+      doc = NTHP::Venue.new(full_path, :site => site, :collection => self)
+      doc.read
+      if site.publisher.publish?(doc) || !write?
+        docs << doc
+      else
+        Jekyll.logger.debug "Skipped From Publishing:", doc.relative_path
+      end
+    end
+  end
+
+  class VenueGenerator < Jekyll::Generator
+    priority :normal
 
     def generate(site)
-      # Generate venue pages for venues without manually created pages.
-      if not site.config["skip_venues"]
-        @collection = site.collections["venues"]
-        Jekyll.logger.info "Generating venues..."
-
-        for venue in site.data["shows_by_venue"]
-          unless @collection.docs.detect { |doc| doc.data["title"] == venue[0] }
-            @collection.docs << VenuePage.new(site, @collection, venue[0])
-          end
-        end
-      else
+      if site.config["skip_venues"]
         Jekyll.logger.warn "Skipping venue generation"
+        return
       end
 
-      for venue_page in @collection.docs
-        # Assign shows to venue, or not
-        venue_page.data['shows'] = site.data['shows_by_venue'][venue_page.data['title']] || []
+      collection = site.collections["venues"]
+      venues = Array.new
 
-        venue_page.data['show_count']  = venue_page.data['shows'].size
-        # venue_page.data['class'] = venue_page.path.split('/')[-1][0..-4]
-        venue_page.data['class'] = 'venue'
+      Jekyll.logger.info "Generating venues..."
 
-        if venue_page.data['images']
-          venue_page.data['smug_images'] = []
-          for imageKey in venue_page.data['images']
-            smugImage = SmugImage.new(imageKey)
-            venue_page.data['smug_images'].push(smugImage)
-          end
+      site.collections["shows"].by_venue.each_key { |venue|
+        unless collection.docs.detect { |doc| doc.data["title"] == venue }
+          venues << Venue.new("/venues/#{venue.downcase}/", {
+            :site => site,
+            :collection => collection,
+            :title => venue,
+            :placeholder => true,
+          })
         end
-      end
+      }
+
+      collection.docs += venues
     end
   end
 end

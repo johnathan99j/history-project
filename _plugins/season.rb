@@ -1,59 +1,71 @@
-module Jekyll
-  class SeasonPage < Document
-    def initialize(site, collection, season, shows)
-      @site = site
-      @season = season
-      @path = SeasonPage.make_path(season)
-      @extname = File.extname(path)
-      @output_ext = Jekyll::Renderer.new(site, self).output_ext
-      @collection = collection
-      @has_yaml_header = nil
-
-      defaults = @site.frontmatter_defaults.all(url, collection.label.to_sym)
-
-      my_data = {
-        "title" => get_title(),
-        "show_count" => shows.size,
-        "shows" => shows,
-        "class" => @path[1..-1],
-      }
-
-      @data = Utils.deep_merge_hashes(defaults, my_data)
+module NTHP
+  class Season < Jekyll::Document
+    def initialize(path, relations)
+      super path, relations
+      merge_data!({
+        "title" => relations[:title],
+      })
     end
 
-    def get_title()
-      "#{ @season }"
+    def slug
+      data["title"].downcase
     end
 
-    def self.make_path(season_name)
-      # Downcase, remove specials, space->underscore
-      season_path = season_name.downcase.gsub(/[^a-z0-9 -]/, '').gsub(/ /, '-').gsub('---', '-')
-      # Special case, UNCUT/Fringe being the same thing
-      if season_name == "UNCUT" then season_path = "fringe" end
-      "/#{ season_path }"
+    def shows
+      @site.collections["shows"].by_season[data["title"]]
     end
 
-    def content()
-      ""
+    def to_liquid
+      @to_liquid ||= SeasonDrop.new(self)
     end
   end
 
-  class SeasonGenerator < Generator
-    priority :low
+  class SeasonDrop < Jekyll::Drops::DocumentDrop
+    extend Forwardable
+    def_delegators :@obj, :slug, :shows
+  end
+
+  class Seasons < Jekyll::Collection
+
+    # Monkey-patched from
+    # https://github.com/jekyll/jekyll/blob/v3.3.0/lib/jekyll/collection.rb#L200
+    private
+    def read_document(full_path)
+      doc = NTHP::Season.new(full_path, :site => site, :collection => self)
+      doc.read
+      if site.publisher.publish?(doc) || !write?
+        docs << doc
+      else
+        Jekyll.logger.debug "Skipped From Publishing:", doc.relative_path
+      end
+    end
+  end
+
+  class SeasonGenerator < Jekyll::Generator
+    priority :normal
 
     def generate(site)
-      if not site.config["skip_seasons"]
-        @collection = site.collections["seasons"]
-        Jekyll.logger.info "Generating seasons..."
-
-        for season in site.data["shows_by_season"]
-          unless @collection.docs.detect { |doc| doc.data["title"] == season[0] }
-            @collection.docs << SeasonPage.new(site, @collection, season[0], season[1])
-          end
-        end
-      else
+      if site.config["skip_seasons"]
         Jekyll.logger.warn "Skipping season generation"
+        return
       end
+
+      collection = site.collections["seasons"]
+      seasons = Array.new
+
+      Jekyll.logger.info "Generating seasons..."
+
+      site.collections["shows"].by_season.each_key { |season|
+        unless collection.docs.detect { |doc| doc.data["title"] == season }
+          seasons << Season.new("/seasons/#{season.downcase}/", {
+            :site => site,
+            :collection => collection,
+            :title => season,
+          })
+        end
+      }
+
+      collection.docs += seasons
     end
   end
 end

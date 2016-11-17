@@ -9,8 +9,16 @@ body_class: section-archives layout-show
   <div class="breadcrumb-inner">
 
     <div class="breadcrumb-controls">
-      <a {% if show.seq_previous %}href="{{ show.seq_previous.url }}" class="enabled"{% else %}href="{{ show.year_page.url }}" class="disabled"{% endif %} title="Previous Show"><i class="ion-chevron-left"></i></a>
-      <a {% if show.seq_next %}href="{{ show.seq_next.url }}" class="enabled"{% else %}href="{{ show.year_page.url }}" class="disabled"{% endif %} title="Next Show"><i class="ion-chevron-right"></i></a>
+      <a {% if show.seq_previous %}href="{{ show.seq_previous.url }}" class="enabled"
+         {% else %}href="{{ show.year_page.url }}" class="disabled"{% endif %}
+         title="Previous Show">
+        <i class="ion-chevron-left"></i>
+      </a>
+      <a {% if show.seq_next %}href="{{ show.seq_next.url }}" class="enabled"
+         {% else %}href="{{ show.year_page.url }}" class="disabled"{% endif %}
+         title="Next Show">
+        <i class="ion-chevron-right"></i>
+      </a>
     </div>
 
     <ul class="breadcrumb-list">
@@ -19,12 +27,12 @@ body_class: section-archives layout-show
           Archives
         </a>
       </li>
-      <li class="breadcrumb breadcrumb-{{ show.year_page.decade }}">
-        <a href="{{ show.year_page.url }}">
-          {{ show.year_page.title }}
+      <li class="breadcrumb breadcrumb-{{ show.yyy }}">
+        <a href="{{ show.year.url }}">
+          {{ show.year.title }}
         </a>
       </li>
-      <li class="breadcrumb breadcrumb-{{ show.year_page.decade }}-child">
+      <li class="breadcrumb breadcrumb-{{ show.yyy }}-child">
         <a href="{{ show.url }}">
           {{ show.title | escape_once }}
         </a>
@@ -52,69 +60,14 @@ body_class: section-archives layout-show
       <header class="show-header">
         <h1 class="show-title">{{ show.title | escape_once }}</h1>
 
-        <div class="meta-row">
-          {% if show.student_written %}
-            <i class="meta-icon fa fa-pencil" title="Student Written"></i>
-          {% elsif show.playwright_type == "devised" %}
-            <i class="meta-icon fa fa-group"></i>
-          {% else %}
-            <i class="meta-icon fa fa-book"></i>
-          {% endif %}
-          <div class="meta-col show-playwright show-playwright-{{ show.playwright_type }}">
-            <p>
-              {% if show.playwright_type != "unknown" %}
-                {% if show.playwright %}
-                <a href="/playwrights/#{{ show.playwright | anchor }}">
-                  {{ show.playwright_formatted | escape_once }}
-                </a>
-                {% else %}{{ show.playwright_formatted | escape_once }}{% endif %}
-              {% else %}
-                <span class="unknown">Playwright Unknown</span>
-              {% endif %}
-
-              {% if show.translator %}
-                <br /><span class="translator">Translated by {{ show.translator | escape_once }}</span>
-              {% endif %}
-
-              {% if show.adaptor %}
-                <br /><span class="adaptor">Adapted by {{ show.adaptor | escape_once }}</span>
-              {% endif %}
-            </p>
-          </div>
-          <i class="meta-icon fa fa-reorder"></i>
-          <div class="meta-col show-season">
-            <p class="season-{{ show.season | downcase | replace:" ","-" }}">
-            {% if show.company %}
-              <a href="{{ show.season_path }}">{{ show.company | escape_once }}</a>
-            {% elsif show.season %}
-              <a href="{{ show.season_path }}">{{ show.season }}</a>
-            {% else %}
-              <span class="unknown">Season Unknown</span>
-            {% endif %}
-            </p>
-          </div>
-          <i class="meta-icon fa fa-calendar"></i>
-          <div class="meta-col show-date">
-            <p>{% if show.date_start %}{% include liquid/date_range.html %}{% else %}<span class="unknown">Dates Unknown</span>{% endif %}</p>
-          </div>
-          <i class="meta-icon fa fa-home"></i>
-          <div class="meta-col show-venue">
-            <p>
-            {% if show.venue and show.venue != "unknown" %}
-              <a href="{{ show.venue_path }}">{{ show.venue }}</a>
-            {% else %}
-              <span class="unknown">Venue Unknown</span>
-            {% endif %}
-            </p>
-          </div>
-        </div>
+        {% include show/meta.html show=page %}
 
       </header>
       <article class="show-synopsys">
         {{ content }}
 
         {% if show.trivia %}
-          {% include trivia-list.html trivia=show.trivia %}
+          {% include show/trivia_list.html trivia=show.trivia %}
         {% elsif show.ignore_missing != true %}
           {% include boxes/show_facts_missing.html %}
         {% endif %}
@@ -123,7 +76,7 @@ body_class: section-archives layout-show
       {% if show.assets.size > 0 %}
       <section class="show-assets">
         <h3>Publicity Materials</h3>
-        {% include show_assets_list.html assets=show.assets %}
+        {% include show/assets_list.html assets=show.assets %}
       </section>
       {% else %}
         {% unless show.ignore_missing %}{% include boxes/show_assets_missing.html %}{% endunless %}
@@ -141,77 +94,7 @@ body_class: section-archives layout-show
   </div>
 
   {% if show.smugmug_album %}
-
-  <div class="debug-comment wrapper" data-debug-toggle>
-    <i class="ion-camera"></i>
-    SmugMug album {{ show.smugmug_album.AlbumKey }}: {{ show.smugmug_album.Title | escape_once }} ({{ show.smugmug_album.UrlName }})<br />
-    Last retrieved at {{ show.smugmug_album.LastFetched }}<br />
-    Album last organised at: {{ show.smugmug_album.LastUpdated }}<br />
-    Album images last updated at: {{ show.smugmug_album.ImagesLastUpdated }}<br />
-    {{ show.smugmug_album.ImageCount }} total images
-  </div>
-
-  <div id="show-prod-shots" class="show-photos-outer">
-
-    <section class="show-photos show-photos-smug lightbox-group">
-      <div class="show-photos__inner">
-      {% for image in show.smugmug_album.Images %}
-      <div class="show-photo-single debug-container">
-        <a class="lightbox-link"
-           href="{{ image.LargeImage.Url }}"
-           title="{{ image.Title | escape_once }}">
-          <img class="lazy-image"
-               src="/images/image-preload.png"
-               data-lazy-src="{{ image.ThumbImage.Url }}"
-               data-image-count={{ image.ImageCount }}
-               alt="Show production shot"
-               title="{{ image.Title | escape_once }}" />
-          <noscript>
-            <img src="{{ image.ThumbImage.Url }}" alt="Show production shot" title="{{ image.Title | escape_once }}" />
-          </noscript>
-          <div class="debug-abs-bottom-left" data-debug-toggle title="Photo type">{{ image.ImageKey }}</div>
-          <div class="debug-abs-top-left" data-debug-toggle title="Photo image">{{ image.FileName }}</div>
-
-        </a>
-      </div>
-      {% endfor %}
-      </div>
-    </section>
-
-    <div class="show-photos-controls">
-     <div class="show-photos-controls__inner">
-      <div class="fade-out-overlay"></div>
-      <div class="gallery-control">
-        <a href="{{ show.smugmug_album.WebUri }}" 
-           title="Show all photos"
-           data-gallery-toggle>
-          <div class="show-label" data-show-label>
-            <i class="ion-ios-arrow-down"></i>
-            {{ show.smugmug_album.ImageCount }} production shots
-            <i class="ion-ios-arrow-down"></i>
-          </div>
-          <div class="hide-label" data-hide-label>
-            <i class="ion-ios-arrow-up"></i>
-            Hide production shots
-            <i class="ion-ios-arrow-up"></i>
-          </div>
-        </a>
-      </div>
-      <div class="smugmug-link">
-        <a href="{{ show.smugmug_album.WebUri }}" title="View album on SmugMug">
-          <div class="smugmug-link-logo">
-            <img src="/images/smugmug-white-64.png" alt="SmugMug logo">
-          </div>
-          <div class="smugmug-link-text">
-            View album on SmugMug
-          </div>
-        </a>
-      </div>
-     </div>
-    </div>
-
-  </div>
-
+    {% include show/prod_shots.html smugmug_album=show.smugmug_album %}
   {% else %}
 
   {% unless show.ignore_missing %}
@@ -235,8 +118,7 @@ body_class: section-archives layout-show
       {% if show.cast == null %}
       {% unless show.ignore_missing %}{% include boxes/show_cast_missing.html %}{% endunless %}
       {% else %}
-      {% assign people = show.cast %}
-      {% include person_list.html %}
+      {% include person_list.html list=page.cast_list%}
       {% endif %}
     </section>
     <section class="show-crew debug-container">
@@ -248,8 +130,7 @@ body_class: section-archives layout-show
       {% if show.crew == null %}
       {% unless show.ignore_missing %}{% include boxes/show_crew_missing.html %}{% endunless %}
       {% else %}
-      {% assign people = show.crew %}
-      {% include person_list.html %}
+      {% include person_list.html list=page.crew_list %}
       {% endif %}
     </section>
   </div>
@@ -262,7 +143,7 @@ body_class: section-archives layout-show
 
 <script type="text/javascript">
 // Reversed to make sense with direction
-var jekyll_page_up = "/years/{{ show.year }}";
+var jekyll_page_up = "/years/{{ show.year.url }}";
 var jekyll_page_previous = "{{ show.seq_previous.url }}";
 var jekyll_page_next = "{{ show.seq_next.url }}";
 </script>

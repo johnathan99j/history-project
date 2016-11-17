@@ -8,8 +8,14 @@ current: archives
   <div class="breadcrumb-inner">
 
     <div class="breadcrumb-controls">
-      <a {% if page.next %}href="{{ page.next.url }}" class="enabled"{% else %}href="/years/" class="disabled"{% endif %} title="Next Year"><i class="ion-chevron-left"></i></a>
-      <a {% if page.previous %}href="{{ page.previous.url }}" class="enabled"{% else %}href="/years/" class="disabled"{% endif %} title="Previous Year">
+      <a {% if page.next %}href="{{ page.next.url }}" class="enabled"
+         {% else %}href="/years/" class="disabled"{% endif %}
+         title="Next Year">
+         <i class="ion-chevron-left"></i>
+       </a>
+      <a {% if page.previous %}href="{{ page.previous.url }}" class="enabled"
+         {% else %}href="/years/" class="disabled"{% endif %}
+         title="Previous Year">
         <i class="ion-chevron-right"></i>
       </a>
     </div>
@@ -18,7 +24,7 @@ current: archives
       <li class="breadcrumb">
         <a href="/years/">Archives</a>
       </li>
-      <li class="breadcrumb breadcrumb-{{ page.decade }}">
+      <li class="breadcrumb breadcrumb-{{ page.yyy }}">
         <a href="{{ page.url }}">{{ page.title }}</a>
       </li>
     </ul>
@@ -41,8 +47,7 @@ current: archives
         {% include boxes/committee_short.html %}
       {% endif %}
 
-      {% assign people = page.committee.committee %}
-      {% include person_list.html %}
+      {% include person_list.html list=page.committee.committee_list %}
 
     {% else %}
 

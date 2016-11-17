@@ -1,0 +1,37 @@
+<section class="person-shows">
+  {% for credit in include.person.shows %}
+  <div class="person-show">
+    <div class="person-show-poster">
+      <a href="{{ credit.source.url }}"
+         title="{{ credit.source.title | escape_once }}">
+      {% if credit.source.poster %}
+        {% include images/show-poster-thumb.html
+                   image=credit.source.poster
+                   sizes="(max-width: 420px) 50vw, (max-width: 768px) 33vw, 170px"
+                   alt=credit.source.title
+                   lazy=true %}
+      {% else %}
+        <!-- Missing Poster -->
+      {% endif %}
+      </a>
+    </div>
+
+    <h3 class="person-show-title">
+      {{ credit.source.title | escape_once }}
+    </h3>
+
+    <div class="person-show-meta">
+      <span class="person-show-season season-{{ credit.source.season | downcase | replace:" ","-" }}"
+            title="{{ credit.source.season }}"></span>
+      <span class="person-show-year">{{ credit.source.year.title }}</span>
+    </div>
+
+    <ul class="person-show-roles">
+    {% for role in credit.roles %}
+      <li>{{ role | escape_once }}</li>
+    {% endfor %}
+    </ul>
+
+  </div>
+  {% endfor %}
+</section>

@@ -10,12 +10,10 @@ date_start: 2013-06-01
 crew:
   - role: Coordinator
     name: Lyle Fulton
-  - role: Technical Director
-    name: Joseph Heil
-  - role: Lighting Designer
-    name: Joseph Heil
   - role: Stage Manager
     name: Will Pimblett
+  - role: Technical Operator
+    name: Joseph Heil
 ---
 
 Exams are fast approaching, and inevitably that means locking yourself away somewhere and struggling through page upon page of dense notes. But here at the Nottingham New Theatre we'd rather enjoy flicking through page upon page of quality new writing!

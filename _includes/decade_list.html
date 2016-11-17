@@ -1,15 +1,14 @@
 <ul class="decade-list archive-list">
-  {% for year in year_pages_decade %}
+  {% for year in include.decade reversed %}
 
-  <li {% if year.shows == null %}class="empty"{% endif %}>
-
+  <li {% if year.shows.size == 0 %}class="empty"{% endif %}>
     <a href="{{ year.url }}">{{ year.title }}</a>
-
-    <div class="decade-list-counts archive-list-counts" data-debug-toggle title="Show counts for year, icon denotes a committee record">
+    <div class="decade-list-counts archive-list-counts"
+         title="Show counts for year, icon denotes a committee record"
+         data-debug-toggle>
       {% if year.shows %}{{ year.shows.size }}{% endif %}
       {% if year.committee %}<i class="fa fa-users"></i>{% endif %}
     </div>
-
   </li>
 
   {% endfor %}

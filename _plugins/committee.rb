@@ -1,52 +1,72 @@
-module Jekyll
-  class CommitteeDataGenerator < Jekyll::Generator
-    priority :high
-
-    # From years.rb
-    def years_by_slug
-      @years_by_slug ||= generate_years_by_slug(@years)
+module NTHP
+  # A single show
+  class Committee < Jekyll::Document
+    def initialize(path, relations)
+      super path, relations
+      merge_data!({
+        "yyyy" => yyyy,
+        # "redirect_from" => TODO
+        #   ["/years/#{@year.to_s[2..4]}_#{(@year+1).to_s[2..4]}/"],
+        }, :source => "class")
     end
 
-    # From people.rb
-    def people_by_filename
-      @people_by_filename ||= generate_people_by_filename(@people)
-    end
-
-    def get_committee_legacy_paths(committee)
-      "committees/#{committee.basename_without_ext}.html"
-    end
-
-    def generate_committee(committee)
-      year = committee.basename_without_ext
-      @committees_by_year[year] = committee
-      committee.data["year"] = year
-      committee.data["year_page"] = years_by_slug[year]
-
-      if committee.data.key?("committee") and committee.data["committee"].class == Array
-        committee.data["committee"] = parse_person_list(committee.data["committee"], people_by_filename)
-        fill_people_reverse_index(committee, committee.data["committee"], "people_ri_committees", @site)
+    # Latch onto this method to access frontmatter data
+    def read_post_data
+      super
+      if data.key?("committee")
+        @committee_list = PersonList.new(@site, self, data["committee"], :committee)
+      else
+        # Fail build if we don't have
+        Jekyll.logger.abort_with "committee #{basename} lacking committee"
       end
-
-      # Generate the legacy path for 301 redirect re. #142 Make semantic and pretty urls
-      committee.data["redirect_from"] = get_committee_legacy_paths(committee)
     end
 
-    def generate(site)
-      Jekyll.logger.info "Processing committees..."
+    # Generate the four digit 'start of academic year'. All shows in 2014-15
+    # will have a yyyy of 2014. It's used to locate the correct year to match
+    # the show up with.
+    def yyyy
+      basename_without_ext[0..3].to_i
+    end
 
-      @site = site
-      @years = @site.collections["years"].docs
+    def committee_list
+      @committee_list.to_liquid
+    end
 
-      committees = @site.collections["committees"].docs
-      @committees_by_year = Hash.new
+    def to_liquid
+      @to_liquid ||= CommitteeDrop.new(self)
+    end
+  end
 
-      @people = @site.collections["people"].docs
+  class CommitteeDrop < Jekyll::Drops::DocumentDrop
+    extend Forwardable
+    def_delegator :@obj, :committee_list
+  end
 
-      committees.each { |committee| generate_committee(committee) }
+  # The shows collection
+  class Committees < Jekyll::Collection
+    # Return an committee for a year.
+    def for_yyyy(year)
+      @by_year ||= begin
+        h = Hash.new
+        @docs.each { |doc|
+          h[doc.data["yyyy"]] = doc
+        }
+        h # return
+      end
+      return @by_year[year]
+    end
 
-      @site.data["committees_by_year"] = @committees_by_year
-
+    # Monkey-patched from
+    # https://github.com/jekyll/jekyll/blob/v3.3.0/lib/jekyll/collection.rb#L200
+    private
+    def read_document(full_path)
+      doc = NTHP::Committee.new(full_path, :site => site, :collection => self)
+      doc.read
+      if site.publisher.publish?(doc) || !write?
+        docs << doc
+      else
+        Jekyll.logger.debug "Skipped From Publishing:", doc.relative_path
+      end
     end
   end
 end
-

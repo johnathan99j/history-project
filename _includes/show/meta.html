@@ -1,0 +1,56 @@
+<div class="meta-row">
+  {% if show.student_written %}
+  <i class="meta-icon fa fa-pencil" title="Student Written"></i>
+  {% elsif show.playwright_type == "devised" %}
+  <i class="meta-icon fa fa-group"></i>
+  {% else %}
+  <i class="meta-icon fa fa-book"></i>
+  {% endif %}
+  <div class="meta-col show-playwright show-playwright-{{ show.playwright_type }}">
+    <p>
+      {% if show.playwright_type != "unknown" %}
+      {% if show.playwright %}
+      <a href="/playwrights/#{{ show.playwright | anchor }}">
+        {{ show.playwright_formatted | escape_once }}
+      </a>
+      {% else %}{{ show.playwright_formatted | escape_once }}{% endif %}
+      {% else %}
+      <span class="unknown">Playwright Unknown</span>
+      {% endif %}
+
+      {% if show.translator %}
+      <br /><span class="translator">Translated by {{ show.translator | escape_once }}</span>
+      {% endif %}
+
+      {% if show.adaptor %}
+      <br /><span class="adaptor">Adapted by {{ show.adaptor | escape_once }}</span>
+      {% endif %}
+    </p>
+  </div>
+  <i class="meta-icon fa fa-reorder"></i>
+  <div class="meta-col show-season">
+    <p class="season-{{ show.season | downcase | replace:" ","-" }}">
+      {% if show.company %}
+      <a href="{{ show.season_path }}">{{ show.company | escape_once }}</a>
+      {% elsif show.season %}
+      <a href="{{ show.season_path }}">{{ show.season }}</a>
+      {% else %}
+      <span class="unknown">Season Unknown</span>
+      {% endif %}
+    </p>
+  </div>
+  <i class="meta-icon fa fa-calendar"></i>
+  <div class="meta-col show-date">
+    <p>{% if show.date_start %}{% include liquid/date_range.html %}{% else %}<span class="unknown">Dates Unknown</span>{% endif %}</p>
+  </div>
+  <i class="meta-icon fa fa-home"></i>
+  <div class="meta-col show-venue">
+    <p>
+      {% if show.venue and show.venue != "unknown" %}
+      <a href="{{ show.venue_path }}">{{ show.venue }}</a>
+      {% else %}
+      <span class="unknown">Venue Unknown</span>
+      {% endif %}
+    </p>
+  </div>
+</div>

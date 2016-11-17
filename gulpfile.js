@@ -208,6 +208,7 @@ gulp.task('debug', ['jekyll_inc',
                     'S_index_people_dev']);
 
 gulp.task('frontend', ['css_dev',
+                       'js_lib_dev',
                        'js_app_dev',
                        'js_scripts_dev']);
 

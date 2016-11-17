@@ -1,138 +1,93 @@
-module Jekyll
-  class YearPage < Document
-    def initialize(site, collection, year)
-      @site = site
-      @year = year
-      @path = make_path()
-      @extname = File.extname(path)
-      @output_ext = Jekyll::Renderer.new(site, self).output_ext
-      @collection = collection
-      @has_yaml_header = nil
+module NTHP
+  # Year
+  class Year < Jekyll::Document
+    def initialize(path, relations)
+      @year = relations[:year]
+      super path, relations
 
-      defaults = @site.frontmatter_defaults.all(url, collection.label.to_sym)
-
-      my_data = {
-        "title" => get_title(),
-        "start_year" => @year,
-        "grad_year" => @year+1,
-        "year" => "#{ year_span_short[0] }_#{ year_span_short[1] }",
-        "decade" => @year.to_s[0..2],
-        "fellows" => [],
-        "commendations" => [],
-      }
-
-      @data = Utils.deep_merge_hashes(defaults, my_data)
+      merge_data!({
+        "title" => "#{@year} – #{(@year+1).to_s[2..4]}",
+        "yyyy" => @year,
+        "yyyy_grad" => @year + 1,
+        "yyy" => @year.to_s[0..2].to_i,
+        "redirect_from" =>
+          ["/years/#{@year.to_s[2..4]}_#{(@year+1).to_s[2..4]}/"],
+      }, :source => "class")
     end
 
-    def year_span_short()
-      """Return the two character representation of the year span as a list"""
-      [@year.to_s[2..3], (@year + 1).to_s[2..3]]
+    # All shows in this year
+    def shows
+      @site.collections["shows"].by_yyyy(data["yyyy"])
     end
 
-    def get_title()
-      "#{ @year.to_s } &ndash; #{ year_span_short[1] }"
+    # Committee for this year
+    def committee
+      @site.collections["committees"].for_yyyy(data["yyyy"])
     end
 
-    def make_path()
-      # Downcase, remove specials, space->underscore
-      "/#{ year_span_short[0] }_#{ year_span_short[1] }"
-    end
-
-    def content()
-      ""
+    def to_liquid
+      @to_liquid ||= YearDrop.new(self)
     end
   end
 
-  class YearGenerator < Generator
+  # Year liquid data 'Drop'
+  class YearDrop < Jekyll::Drops::DocumentDrop
+    extend Forwardable
+    def_delegators :@obj, :shows, :committee#, :fellows, :commendations
+  end
+
+  # Years collection
+  class Years < Jekyll::Collection
+    attr_writer :year_map
+
+    # Return a hash of years by their decade (yyy)
+    def by_decade
+      @by_decade ||= begin
+        h = Hash.new
+        @docs.each { |doc|
+          (h[doc.data["yyy"].to_s] ||= []) << doc
+        }
+        h # return
+      end
+      return @by_decade
+    end
+
+    # Return a year doc from it's yyyy
+    def by_yyyy(yyyy)
+      @year_map[yyyy]
+    end
+  end
+
+  # Spawns year documents for the prescribed range
+  class YearGenerator < Jekyll::Generator
     priority :highest
 
+    # Turns 2015 into "2015-16"
+    def path(year)
+      return "#{year}-#{(year+1).to_s[2..4]}"
+    end
+
+    # Called by Jekyll
     def generate(site)
       if not site.config["skip_years"]
-        @collection = site.collections["years"]
+        collection = site.collections["years"]
         Jekyll.logger.info "Generating years..."
-
+        years = Array.new
+        year_map = Hash.new
         for year in site.config["year_start"]..site.config["year_end"]
-          unless @collection.docs.detect { |doc| doc.data["start_year"] == year }
-            @collection.docs << YearPage.new(site, @collection, year)
-          end
+          year_doc = NTHP::Year.new(path(year), {
+            :site => site,
+            :collection => collection,
+            :year => year,
+          })
+          years << year_doc
+          year_map[year] = year_doc
         end
+        collection.docs = years
+        collection.year_map = year_map
       else
         Jekyll.logger.warn "Skipping year generation"
       end
     end
   end
-
-  class YearDataGenerator < Generator
-    priority :low  # Should be one of the last to execute
-
-    def get_sorted_years(years)
-      years.sort_by { |year| year.data["start_year"] }
-    end
-
-    def add_to_years_by_decade(year)
-      (@years_by_decade[year.data["decade"]] ||= []) << year
-    end
-
-    def get_year_legacy_path(year)
-      "years/#{year.basename_without_ext}.html"
-    end
-
-    def get_year_slug(year)
-      year.data["year"]
-    end
-
-    def generate_year(year, index)
-      """Method called for every year"""
-      year_slug = get_year_slug(year)
-      add_to_years_by_decade(year)
-
-      year.data["committee"] = @site.data["committees_by_year"][year_slug]
-      # year.data["seq_next"] = @years[index + 1]
-      # year.data["seq_previous"] = @years[index - 1]
-      year.data["shows"] = @site.data["shows_by_year"][year_slug]
-
-      # Yucky ruby syntax, if not empty assign size, otherwise 0 cos no shows
-      year.data["show_count"] = year.data["shows"] ? year.data["shows"].size : 0
-
-      # Keep track of the most number of shows
-      @top_show_count ||= 0 # Instance var common to all years
-      @top_show_count = year.data["show_count"] if year.data["show_count"] > @top_show_count
-
-      year.data["redirect_from"] = Array(get_year_legacy_path(year)).freeze
-    end
-
-    def generate(site)
-      Jekyll.logger.info "Processing years..."
-      @site = site
-      @years = get_sorted_years(@site.collections["years"].docs)
-      committees = @site.collections["committees"].docs
-
-      @years_by_decade = Hash.new
-      top_show_count = 0
-
-      @years.each_with_index { |year, index| generate_year(year, index) }
-
-      # Create a copy of years_by_decade but with the lists reversed
-      years_by_decade_reversed = Hash.new
-      for key, value in @years_by_decade.each_pair
-        years_by_decade_reversed[key] = value.reverse
-      end
-
-      @site.data["years"] = @years
-      @site.data["years_by_decade"] = @years_by_decade
-      @site.data["years_by_decade_reversed"] = years_by_decade_reversed
-      @site.data["top_show_count"] = @top_show_count
-
-    end
-  end
-end
-
-# Utility functions
-
-def generate_years_by_slug(years)
-  years_by_slug = Hash.new
-  for year in years
-    years_by_slug[year.data["year"]] = year
-  end
-  return years_by_slug
 end
